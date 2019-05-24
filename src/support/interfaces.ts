@@ -31,6 +31,7 @@ export interface ActionParams {
   args?: Arguments;
   variables?: Arguments;
   bypassCache?: boolean;
+  with?: Array<string>;
   query?: string | DocumentNode;
   multiple?: boolean;
   name?: string;

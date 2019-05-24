@@ -39,10 +39,16 @@ export default class Fetch extends Action {
         : {};
 
     const bypassCache = params && params.bypassCache;
+    const eagerLoad = params ? params.with || [] : [];
+
+    if (eagerLoad.length > 0) {
+      model.setEagerLoadList(eagerLoad);
+    }
 
     // When the filter contains an id, we query in singular mode
     const multiple: boolean = !filter["id"];
     const name: string = context.adapter.getNameForFetch(model, multiple);
+
     const query = QueryBuilder.buildQuery("query", model, name, filter, multiple, multiple);
 
     // Send the request to the GraphQL API

@@ -237,6 +237,10 @@ export default class Model {
       .first();
   }
 
+  public setEagerLoadList(loadList: Array<string>) {
+    this.baseModel.eagerLoad = loadList;
+  }
+
   /**
    * Determines if we should eager load (means: add as a field in the graphql query) a related entity. belongsTo or
    * hasOne related entities are always eager loaded. Others can be added to the `eagerLoad` array of the model.
