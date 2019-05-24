@@ -8,7 +8,7 @@ import Action from "./action";
 /**
  * Fetch action for sending a query. Will be used for Model.fetch().
  */
-export default class Fetch extends Action {
+export default class Get extends Action {
   /**
    * @param {any} state The Vuex state
    * @param {DispatchFunction} dispatch Vuex Dispatch method for the model
@@ -22,12 +22,12 @@ export default class Fetch extends Action {
     const context = Context.getInstance();
     const model = this.getModelFromState(state!);
 
-    const mockReturnValue = model.$mockHook("fetch", {
+    const mockReturnValue = model.$mockHook("get", {
       filter: params ? params.filter || {} : {}
     });
 
     if (mockReturnValue) {
-      return Store.insertData(mockReturnValue, dispatch!);
+      return Store.createData(mockReturnValue, dispatch!);
     }
 
     await context.loadSchema();
@@ -48,11 +48,7 @@ export default class Fetch extends Action {
     // Send the request to the GraphQL API
     const data = await context.apollo.request(model, query, filter, false, bypassCache as boolean);
 
-    if (model.singularName.includes("Paginator")) {
-      return Store.createData(data, dispatch!);
-    } else {
-      return Store.insertData(data, dispatch!);
-    }
     // Insert incoming data into the store
+    return Store.createData(data, dispatch!);
   }
 }

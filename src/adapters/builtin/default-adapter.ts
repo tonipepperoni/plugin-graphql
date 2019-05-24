@@ -12,7 +12,7 @@ export default class DefaultAdapter implements Adapter {
   }
 
   getConnectionMode(): ConnectionMode {
-    return ConnectionMode.NODES;
+    return ConnectionMode.PLAIN;
   }
 
   getArgumentMode(): ArgumentMode {
@@ -32,6 +32,9 @@ export default class DefaultAdapter implements Adapter {
   }
 
   getNameForFetch(model: Model, plural: boolean): string {
+    return plural ? model.pluralName : model.singularName;
+  }
+  getNameForGet(model: Model, plural: boolean): string {
     return plural ? model.pluralName : model.singularName;
   }
 

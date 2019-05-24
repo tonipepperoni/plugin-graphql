@@ -1,7 +1,7 @@
 import { PatchedModel, Options, ActionParams } from "./support/interfaces";
 import Context from "./common/context";
 import { Components } from "@vuex-orm/core/lib/plugins/use";
-import { Destroy, Fetch, Mutate, Persist, Push } from "./actions";
+import { Destroy, Fetch, Mutate, Persist, Push, Get } from "./actions";
 import Query from "./actions/query";
 import SimpleQuery from "./actions/simple-query";
 import SimpleMutation from "./actions/simple-mutation";
@@ -44,6 +44,7 @@ export default class VuexORMGraphQL {
     context.components.Actions.destroy = Destroy.call.bind(Destroy);
     context.components.Actions.mutate = Mutate.call.bind(Mutate);
     context.components.Actions.query = Query.call.bind(Query);
+    context.components.Actions.get = Get.call.bind(Get);
   }
 
   /**
@@ -63,6 +64,18 @@ export default class VuexORMGraphQL {
         filterObj = { id: filter };
       }
       return this.dispatch("fetch", { filter: filterObj, bypassCache });
+    };
+
+    // Register static model convenience methods
+    (context.components.Model as typeof PatchedModel).get = async function(
+      filter: any,
+      bypassCache = false
+    ) {
+      let filterObj = filter;
+      if (!isPlainObject(filterObj)) {
+        filterObj = { id: filter };
+      }
+      return this.dispatch("get", { filter: filterObj, bypassCache });
     };
 
     (context.components.Model as typeof PatchedModel).mutate = async function(

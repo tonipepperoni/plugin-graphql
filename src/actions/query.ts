@@ -56,6 +56,8 @@ export default class Query extends Action {
         bypassCache as boolean
       );
 
+      console.log(model);
+
       // Insert incoming data into the store
       return Store.insertData(data, dispatch!);
     } else {
