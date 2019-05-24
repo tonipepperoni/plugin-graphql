@@ -39,7 +39,7 @@ export default class Fetch extends Action {
         : {};
 
     const bypassCache = params && params.bypassCache;
-    const eagerLoad = params ? params.with || [] : [];
+    const eagerLoad = params ? params.load || [] : [];
 
     if (eagerLoad.length > 0) {
       model.setEagerLoadList(eagerLoad);
