@@ -29,6 +29,11 @@ export default class Fetch extends Action {
     if (mockReturnValue) {
       return Store.insertData(mockReturnValue, dispatch!);
     }
+    const eagerLoad = params ? params.load || [] : [];
+
+    if (eagerLoad.length > 0) {
+      model.setEagerLoadList(eagerLoad);
+    }
 
     await context.loadSchema();
 
@@ -39,11 +44,6 @@ export default class Fetch extends Action {
         : {};
 
     const bypassCache = params && params.bypassCache;
-    const eagerLoad = params ? params.load || [] : [];
-
-    if (eagerLoad.length > 0) {
-      model.setEagerLoadList(eagerLoad);
-    }
 
     // When the filter contains an id, we query in singular mode
     const multiple: boolean = !filter["id"];

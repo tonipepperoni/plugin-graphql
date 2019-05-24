@@ -81,7 +81,7 @@ export interface Field {
 }
 
 export class PatchedModel extends ORMModel {
-  static async fetch(filter?: any, bypassCache: boolean = false, load?: any): Promise<any> {
+  static async fetch(filter?: any, load?: any, bypassCache: boolean = false): Promise<any> {
     return undefined;
   }
   static async get(filter?: any, bypassCache: boolean = false): Promise<any> {
