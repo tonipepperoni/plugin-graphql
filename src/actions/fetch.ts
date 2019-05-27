@@ -53,7 +53,8 @@ export default class Fetch extends Action {
 
     // Send the request to the GraphQL API
     const data = await context.apollo.request(model, query, filter, false, bypassCache as boolean);
-
+    console.log(model.singularName);
+    console.log(model.singularName.includes("Paginator"));
     if (model.singularName.includes("Paginator")) {
       return Store.createData(data, dispatch!);
     } else {
