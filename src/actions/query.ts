@@ -56,7 +56,8 @@ export default class Query extends Action {
         bypassCache as boolean
       );
 
-      console.log(model);
+      console.log(model.singularName);
+      console.log(model.singularName.includes("Paginator"));
 
       // Insert incoming data into the store
 
