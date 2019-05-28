@@ -253,14 +253,6 @@ export default class Model {
   public shouldEagerLoadRelation(fieldName: string, field: Field, relatedModel: Model): boolean {
     const context = Context.getInstance();
 
-    if (
-      field instanceof context.components.HasOne ||
-      field instanceof context.components.BelongsTo ||
-      field instanceof context.components.MorphOne
-    ) {
-      return true;
-    }
-
     const eagerLoadList: Array<String> = this.baseModel.eagerLoad || [];
     return (
       eagerLoadList.find(n => {
