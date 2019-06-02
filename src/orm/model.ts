@@ -267,50 +267,6 @@ export default class Model {
     }
   }
 
-  public setMultiLevelRelations(loadList: Array<string>, nextLevelRelatedModel?: Model) {
-    for (let rel of loadList) {
-      let nestedRelationships = rel.split(".");
-
-      if (nestedRelationships.length > 0) {
-        let fieldName = nestedRelationships[0];
-        let eagerLoad = nestedRelationships[1];
-
-        if (!nextLevelRelatedModel) {
-          if (!(this.baseModel.eagerTempSync instanceof Array)) {
-            this.baseModel.eagerTempSync = [];
-          }
-          this.baseModel.eagerTempSync.push(nestedRelationships[0]);
-        }
-
-        let currentModel: Model = nextLevelRelatedModel || this;
-        const relation: Relation = currentModel.getRelations().get(fieldName)!;
-        const relatedModel: Model | null = Model.getRelatedModel(relation);
-        if (relatedModel) {
-          if (!(relatedModel.baseModel.eagerTempSync instanceof Array)) {
-            relatedModel.baseModel.eagerTempSync = [];
-          }
-          relatedModel.baseModel.eagerTempSync.push(eagerLoad);
-          this.modelsWithEagerLoads.push(relatedModel);
-
-          nestedRelationships.shift();
-
-          if (nestedRelationships.length > 1) {
-            let restRelations = [nestedRelationships.join(".")];
-
-            if (restRelations[0].length > 0) {
-              this.setMultiLevelRelations(restRelations, relatedModel);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  public with(loadList: Array<string>) {
-    this.setMultiLevelRelations(loadList);
-    return this;
-  }
-
   public setEagerLoadList(loadList: Array<string>) {
     this.baseModel.eagerLoad = loadList;
   }

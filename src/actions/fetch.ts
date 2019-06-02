@@ -60,6 +60,7 @@ export default class Fetch extends Action {
     } else {
       return Store.insertData(data, dispatch!);
     }
+
     // Insert incoming data into the store
   }
 }
