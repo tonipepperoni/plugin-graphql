@@ -31,7 +31,6 @@ export interface ActionParams {
   args?: Arguments;
   variables?: Arguments;
   bypassCache?: boolean;
-  load?: Array<string>;
   query?: string | DocumentNode;
   multiple?: boolean;
   name?: string;
@@ -81,7 +80,7 @@ export interface Field {
 }
 
 export class PatchedModel extends ORMModel {
-  static async fetch(filter?: any, load?: any, bypassCache: boolean = false): Promise<any> {
+  static async fetch(filter?: any, bypassCache: boolean = false): Promise<any> {
     return undefined;
   }
   static async get(filter?: any, bypassCache: boolean = false): Promise<any> {

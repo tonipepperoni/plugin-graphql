@@ -1,4 +1,4 @@
-import { Model as ORMModel } from "@vuex-orm/core";
+import { Model as ORMModel, Relation } from "@vuex-orm/core";
 import { Field } from "../support/interfaces";
 import Context from "../common/context";
 import { Mock, MockOptions } from "../test-utils";
@@ -26,6 +26,8 @@ export default class Model {
    * The original Vuex-ORM model
    */
   public readonly baseModel: ORMModel;
+
+  private modelsWithEagerLoads: Array<Model> = [];
 
   /**
    * The fields of the model
@@ -146,6 +148,7 @@ export default class Model {
    * @param {string} field
    * @returns {boolean}
    */
+
   public skipField(field: string) {
     if (field.startsWith("$")) return true;
     if (this.baseModel.skipFields && this.baseModel.skipFields.indexOf(field) >= 0) return true;
@@ -154,7 +157,7 @@ export default class Model {
 
     let shouldSkipField: boolean = false;
 
-    this.getRelations().forEach((relation: Field) => {
+    this.getRelations().forEach((relation: Relation) => {
       if (
         (relation instanceof context.components.BelongsTo ||
           relation instanceof context.components.HasOne) &&
@@ -172,12 +175,12 @@ export default class Model {
   /**
    * @returns {Map<string, Field>} all relations of the model which should be included in a graphql query
    */
-  public getRelations(): Map<string, Field> {
-    const relations = new Map<string, Field>();
+  public getRelations(): Map<string, Relation> {
+    const relations = new Map<string, Relation>();
 
     this.fields.forEach((field: Field, name: string) => {
       if (!Model.isFieldAttribute(field)) {
-        relations.set(name, field);
+        relations.set(name, field as Relation);
       }
     });
 
@@ -205,13 +208,11 @@ export default class Model {
           relation instanceof context.components.MorphTo ||
           relation instanceof context.components.MorphToMany
         ) {
-          if (
-            relation.type === name &&
-            relation.related &&
-            relation.related.entity === this.baseModel.entity
-          ) {
+          const related = (relation as Field).related;
+
+          if (relation.type === name && related && related.entity === this.baseModel.entity) {
             found = true;
-            return false;
+            return false; // break
           }
         }
 
@@ -237,6 +238,79 @@ export default class Model {
       .first();
   }
 
+  public static getRelatedModel(relation?: Relation) {
+    if (relation === undefined) return null;
+
+    const context: Context = Context.getInstance();
+
+    if (
+      relation instanceof context.components.BelongsToMany ||
+      relation instanceof context.components.HasMany ||
+      relation instanceof context.components.HasManyThrough ||
+      relation instanceof context.components.MorphedByMany ||
+      relation instanceof context.components.MorphMany ||
+      relation instanceof context.components.MorphOne ||
+      relation instanceof context.components.MorphToMany ||
+      relation instanceof context.components.HasOne
+    ) {
+      return context.getModel(relation.related.entity, true);
+    } else if (
+      relation instanceof context.components.BelongsTo ||
+      relation instanceof context.components.HasManyBy
+    ) {
+      return context.getModel(relation.parent.entity, true);
+    } else if (relation instanceof context.components.MorphTo) {
+      return context.getModel(relation.type, true);
+    } else {
+      console.warn("Failed relation", typeof relation, relation);
+      throw new Error(`Can't find related model for relation of type ${typeof relation}!`);
+    }
+  }
+
+  public setMultiLevelRelations(loadList: Array<string>, nextLevelRelatedModel?: Model) {
+    for (let rel of loadList) {
+      let nestedRelationships = rel.split(".");
+
+      if (nestedRelationships.length > 0) {
+        let fieldName = nestedRelationships[0];
+        let eagerLoad = nestedRelationships[1];
+
+        if (!nextLevelRelatedModel) {
+          if (!(this.baseModel.eagerTempSync instanceof Array)) {
+            this.baseModel.eagerTempSync = [];
+          }
+          this.baseModel.eagerTempSync.push(nestedRelationships[0]);
+        }
+
+        let currentModel: Model = nextLevelRelatedModel || this;
+        const relation: Relation = currentModel.getRelations().get(fieldName)!;
+        const relatedModel: Model | null = Model.getRelatedModel(relation);
+        if (relatedModel) {
+          if (!(relatedModel.baseModel.eagerTempSync instanceof Array)) {
+            relatedModel.baseModel.eagerTempSync = [];
+          }
+          relatedModel.baseModel.eagerTempSync.push(eagerLoad);
+          this.modelsWithEagerLoads.push(relatedModel);
+
+          nestedRelationships.shift();
+
+          if (nestedRelationships.length > 1) {
+            let restRelations = [nestedRelationships.join(".")];
+
+            if (restRelations[0].length > 0) {
+              this.setMultiLevelRelations(restRelations, relatedModel);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  public with(loadList: Array<string>) {
+    this.setMultiLevelRelations(loadList);
+    return this;
+  }
+
   public setEagerLoadList(loadList: Array<string>) {
     this.baseModel.eagerLoad = loadList;
   }
@@ -250,12 +324,47 @@ export default class Model {
    * @param {Model} relatedModel Related model
    * @returns {boolean}
    */
-  public shouldEagerLoadRelation(fieldName: string, field: Field, relatedModel: Model): boolean {
+  public shouldEagerLoadRelation(
+    fieldName: string,
+    relation: Relation,
+    relatedModel: Model
+  ): boolean {
     const context = Context.getInstance();
 
+    // Create a list of all relations that have to be eager loaded
     const eagerLoadList: Array<String> = this.baseModel.eagerLoad || [];
+    Array.prototype.push.apply(eagerLoadList, this.baseModel.eagerSync || []);
+    Array.prototype.push.apply(eagerLoadList, this.baseModel.eagerTempSync || []);
+    Array.prototype.push.apply(eagerLoadList, this.baseModel.eagerTemp || []);
+
+    // Check if the name of the related model or the fieldName is included in the eagerLoadList.
     return (
       eagerLoadList.find(n => {
+        return n === relatedModel.singularName || n === relatedModel.pluralName || n === fieldName;
+      }) !== undefined
+    );
+  }
+
+  public shouldEagerSaveRelation(
+    fieldName: string,
+    relation: Relation,
+    relatedModel: Model
+  ): boolean {
+    const context = Context.getInstance();
+
+    // BelongsTo is always eager saved
+    if (relation instanceof context.components.BelongsTo) {
+      return true;
+    }
+
+    // Create a list of all relations that have to be eager saved
+    const eagerSaveList: Array<String> = this.baseModel.eagerSave || [];
+    Array.prototype.push.apply(eagerSaveList, this.baseModel.eagerSync || []);
+    Array.prototype.push.apply(eagerSaveList, this.baseModel.eagerTempSync || []);
+
+    // Check if the name of the related model or the fieldName is included in the eagerSaveList.
+    return (
+      eagerSaveList.find(n => {
         return n === relatedModel.singularName || n === relatedModel.pluralName || n === fieldName;
       }) !== undefined
     );

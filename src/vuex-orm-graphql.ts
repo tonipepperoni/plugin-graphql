@@ -57,14 +57,13 @@ export default class VuexORMGraphQL {
     // Register static model convenience methods
     (context.components.Model as typeof PatchedModel).fetch = async function(
       filter: any,
-      load: any,
       bypassCache = false
     ) {
       let filterObj = filter;
       if (!isPlainObject(filterObj)) {
         filterObj = { id: filter };
       }
-      return this.dispatch("fetch", { filter: filterObj, load, bypassCache });
+      return this.dispatch("fetch", { filter: filterObj, bypassCache });
     };
 
     // Register static model convenience methods

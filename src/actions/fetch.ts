@@ -29,19 +29,20 @@ export default class Fetch extends Action {
     if (mockReturnValue) {
       return Store.insertData(mockReturnValue, dispatch!);
     }
-    const eagerLoad = params ? params.load || [] : [];
-
-    if (eagerLoad.length > 0) {
-      model.setEagerLoadList(eagerLoad);
-    }
 
     await context.loadSchema();
+    let filter = {};
 
     // Filter
-    const filter =
-      params && params.filter
-        ? Transformer.transformOutgoingData(model, params.filter, Object.keys(params.filter))
-        : {};
+
+    if (params && params.filter) {
+      filter = Transformer.transformOutgoingData(
+        model,
+        params.filter as Data,
+        true,
+        Object.keys(params.filter)
+      );
+    }
 
     const bypassCache = params && params.bypassCache;
 
@@ -53,8 +54,7 @@ export default class Fetch extends Action {
 
     // Send the request to the GraphQL API
     const data = await context.apollo.request(model, query, filter, false, bypassCache as boolean);
-    console.log(model.singularName);
-    console.log(model.singularName.includes("Paginator"));
+
     if (model.singularName.includes("Paginator")) {
       return Store.createData(data, dispatch!);
     } else {
